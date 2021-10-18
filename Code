@@ -1,4 +1,4 @@
-package com.your.packagename;
+package com.your.package.name;
 
 import android.content.Context;
 import android.graphics.Canvas;
