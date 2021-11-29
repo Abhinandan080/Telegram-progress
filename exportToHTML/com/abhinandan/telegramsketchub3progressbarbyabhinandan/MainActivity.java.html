@@ -1,0 +1,274 @@
+<html>
+<head>
+<title>MainActivity.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #000080; font-weight: bold;}
+.s1 { color: #000000;}
+.s2 { color: #0000ff;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+MainActivity.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span>com.your.telegramsketchub3progressbarbyabhinandan;
+
+<span class="s0">import </span>android.content.Context;
+<span class="s0">import </span>android.graphics.Canvas;
+<span class="s0">import </span>android.graphics.Paint;
+<span class="s0">import </span>android.graphics.RectF;
+<span class="s0">import </span>android.graphics.drawable.Drawable;
+<span class="s0">import </span>android.os.Bundle;
+<span class="s0">import </span>android.view.View;
+<span class="s0">import </span>android.view.animation.AccelerateInterpolator;
+<span class="s0">import </span>android.view.animation.DecelerateInterpolator;
+<span class="s0">import </span>androidx.annotation.Keep;
+<span class="s0">import </span>androidx.appcompat.app.AppCompatActivity;
+
+<span class="s0">public class </span>MainActivity <span class="s0">extends </span>AppCompatActivity {
+
+    @Override
+    <span class="s0">protected void </span>onCreate(Bundle savedInstanceState) {
+        <span class="s0">super</span>.onCreate(savedInstanceState);
+        setContentView(<span class="s0">new </span>RadialProgressView(<span class="s0">this</span>));
+    }
+    <span class="s0">public class </span>RadialProgressView <span class="s0">extends </span>View {
+
+        <span class="s0">private long </span>lastUpdateTime;
+        <span class="s0">private float </span>radOffset;
+        <span class="s0">private float </span>currentCircleLength;
+        <span class="s0">private boolean </span>risingCircleLength;
+        <span class="s0">private float </span>currentProgressTime;
+        <span class="s0">private </span>RectF cicleRect = <span class="s0">new </span>RectF();
+        <span class="s0">private boolean </span>useSelfAlpha;
+        <span class="s0">private float </span>drawingCircleLenght;
+
+        <span class="s0">private int </span>progressColor;
+
+        <span class="s0">private </span>DecelerateInterpolator decelerateInterpolator;
+        <span class="s0">private </span>AccelerateInterpolator accelerateInterpolator;
+        <span class="s0">private </span>Paint progressPaint;
+        <span class="s0">private static final float </span>rotationTime = <span class="s2">2000</span>;
+        <span class="s0">private static final float </span>risingTime = <span class="s2">500</span>;
+        <span class="s0">private int </span>size;
+
+        <span class="s0">private float </span>currentProgress;
+        <span class="s0">private float </span>progressAnimationStart;
+        <span class="s0">private int </span>progressTime;
+        <span class="s0">private float </span>animatedProgress;
+        <span class="s0">private boolean </span>toCircle;
+        <span class="s0">private float </span>toCircleProgress;
+
+        <span class="s0">private boolean </span>noProgress = <span class="s0">true</span>;
+
+        <span class="s0">public </span>RadialProgressView(Context context) {
+            <span class="s0">super</span>(context);
+
+            size = dp(<span class="s2">40</span>);
+
+            progressColor = <span class="s2">0xff888888</span>;
+            decelerateInterpolator = <span class="s0">new </span>DecelerateInterpolator();
+            accelerateInterpolator = <span class="s0">new </span>AccelerateInterpolator();
+            progressPaint = <span class="s0">new </span>Paint(Paint.ANTI_ALIAS_FLAG);
+            progressPaint.setStyle(Paint.Style.STROKE);
+            progressPaint.setStrokeCap(Paint.Cap.ROUND);
+            progressPaint.setStrokeWidth(dp(<span class="s2">3</span>));
+            progressPaint.setColor(progressColor);
+        }
+
+        <span class="s0">public void </span>setUseSelfAlpha(<span class="s0">boolean </span>value) {
+            useSelfAlpha = value;
+        }
+
+        @Keep
+        @Override
+        <span class="s0">public void </span>setAlpha(<span class="s0">float </span>alpha) {
+            <span class="s0">super</span>.setAlpha(alpha);
+            <span class="s0">if </span>(useSelfAlpha) {
+                Drawable background = getBackground();
+                <span class="s0">int </span>a = (<span class="s0">int</span>) (alpha * <span class="s2">255</span>);
+                <span class="s0">if </span>(background != <span class="s0">null</span>) {
+                    background.setAlpha(a);
+                }
+                progressPaint.setAlpha(a);
+            }
+        }
+
+        <span class="s0">public void </span>setNoProgress(<span class="s0">boolean </span>value) {
+            noProgress = value;
+        }
+
+        <span class="s0">public void </span>setProgress(<span class="s0">float </span>value) {
+            currentProgress = value;
+            <span class="s0">if </span>(animatedProgress &gt; value) {
+                animatedProgress = value;
+            }
+            progressAnimationStart = animatedProgress;
+            progressTime = <span class="s2">0</span>;
+        }
+
+        <span class="s0">private void </span>updateAnimation() {
+            <span class="s0">long </span>newTime = System.currentTimeMillis();
+            <span class="s0">long </span>dt = newTime - lastUpdateTime;
+            <span class="s0">if </span>(dt &gt; <span class="s2">17</span>) {
+                dt = <span class="s2">17</span>;
+            }
+            lastUpdateTime = newTime;
+
+            radOffset += <span class="s2">360 </span>* dt / rotationTime;
+            <span class="s0">int </span>count = (<span class="s0">int</span>) (radOffset / <span class="s2">360</span>);
+            radOffset -= count * <span class="s2">360</span>;
+
+            <span class="s0">if </span>(toCircle &amp;&amp; toCircleProgress != <span class="s2">1f</span>) {
+                toCircleProgress += <span class="s2">16 </span>/ <span class="s2">220f</span>;
+                <span class="s0">if </span>(toCircleProgress &gt; <span class="s2">1f</span>) {
+                    toCircleProgress = <span class="s2">1f</span>;
+                }
+            } <span class="s0">else if </span>(!toCircle &amp;&amp; toCircleProgress != <span class="s2">0f</span>) {
+                toCircleProgress -= <span class="s2">16 </span>/ <span class="s2">400f</span>;
+                <span class="s0">if </span>(toCircleProgress &lt; <span class="s2">0</span>) {
+                    toCircleProgress = <span class="s2">0f</span>;
+                }
+            }
+
+            <span class="s0">if </span>(noProgress) {
+                <span class="s0">if </span>(toCircleProgress == <span class="s2">0</span>) {
+                    currentProgressTime += dt;
+                    <span class="s0">if </span>(currentProgressTime &gt;= risingTime) {
+                        currentProgressTime = risingTime;
+                    }
+                    <span class="s0">if </span>(risingCircleLength) {
+                        currentCircleLength =
+                                <span class="s2">4</span>
+                                        + <span class="s2">266</span>
+                                        * accelerateInterpolator.getInterpolation(
+                                        currentProgressTime / risingTime);
+                    } <span class="s0">else </span>{
+                        currentCircleLength =
+                                <span class="s2">4</span>
+                                        - <span class="s2">270</span>
+                                        * (<span class="s2">1.0f</span>
+                                        - decelerateInterpolator.getInterpolation(
+                                        currentProgressTime / risingTime));
+                    }
+
+                    <span class="s0">if </span>(currentProgressTime == risingTime) {
+                        <span class="s0">if </span>(risingCircleLength) {
+                            radOffset += <span class="s2">270</span>;
+                            currentCircleLength = -<span class="s2">266</span>;
+                        }
+                        risingCircleLength = !risingCircleLength;
+                        currentProgressTime = <span class="s2">0</span>;
+                    }
+                } <span class="s0">else </span>{
+                    <span class="s0">if </span>(risingCircleLength) {
+                        <span class="s0">float </span>old = currentCircleLength;
+                        currentCircleLength =
+                                <span class="s2">4</span>
+                                        + <span class="s2">266</span>
+                                        * accelerateInterpolator.getInterpolation(
+                                        currentProgressTime / risingTime);
+                        currentCircleLength += <span class="s2">360 </span>* toCircleProgress;
+                        <span class="s0">float </span>dx = old - currentCircleLength;
+                        <span class="s0">if </span>(dx &gt; <span class="s2">0</span>) {
+                            radOffset += old - currentCircleLength;
+                        }
+                    } <span class="s0">else </span>{
+                        <span class="s0">float </span>old = currentCircleLength;
+                        currentCircleLength =
+                                <span class="s2">4</span>
+                                        - <span class="s2">270</span>
+                                        * (<span class="s2">1.0f</span>
+                                        - decelerateInterpolator.getInterpolation(
+                                        currentProgressTime / risingTime));
+                        currentCircleLength -= <span class="s2">364 </span>* toCircleProgress;
+                        <span class="s0">float </span>dx = old - currentCircleLength;
+                        <span class="s0">if </span>(dx &gt; <span class="s2">0</span>) {
+                            radOffset += old - currentCircleLength;
+                        }
+                    }
+                }
+            } <span class="s0">else </span>{
+                <span class="s0">float </span>progressDiff = currentProgress - progressAnimationStart;
+                <span class="s0">if </span>(progressDiff &gt; <span class="s2">0</span>) {
+                    progressTime += dt;
+                    <span class="s0">if </span>(progressTime &gt;= <span class="s2">200.0f</span>) {
+                        animatedProgress = progressAnimationStart = currentProgress;
+                        progressTime = <span class="s2">0</span>;
+                    } <span class="s0">else </span>{
+                        animatedProgress =
+                                progressAnimationStart
+                                        + progressDiff
+                                        * decelerateInterpolator
+                                        .getInterpolation(progressTime / <span class="s2">200.0f</span>);
+                    }
+                }
+                currentCircleLength = Math.max(<span class="s2">4</span>, <span class="s2">360 </span>* animatedProgress);
+            }
+            invalidate();
+        }
+
+        <span class="s0">public void </span>setSize(<span class="s0">int </span>value) {
+            size = value;
+            invalidate();
+        }
+
+        <span class="s0">public void </span>setStrokeWidth(<span class="s0">float </span>value) {
+            progressPaint.setStrokeWidth(dp(value));
+        }
+
+        <span class="s0">public void </span>setProgressColor(<span class="s0">int </span>color) {
+            progressColor = color;
+            progressPaint.setColor(progressColor);
+        }
+
+        <span class="s0">public void </span>toCircle(<span class="s0">boolean </span>toCircle, <span class="s0">boolean </span>animated) {
+            <span class="s0">this</span>.toCircle = toCircle;
+            <span class="s0">if </span>(!animated) {
+                toCircleProgress = toCircle ? <span class="s2">1f </span>: <span class="s2">0f</span>;
+            }
+        }
+
+        @Override
+        <span class="s0">protected void </span>onDraw(Canvas canvas) {
+            <span class="s0">int </span>x = (getMeasuredWidth() - size) / <span class="s2">2</span>;
+            <span class="s0">int </span>y = (getMeasuredHeight() - size) / <span class="s2">2</span>;
+            cicleRect.set(x, y, x + size, y + size);
+            canvas.drawArc(
+                    cicleRect,
+                    radOffset,
+                    drawingCircleLenght = currentCircleLength,
+                    <span class="s0">false</span>,
+                    progressPaint);
+            updateAnimation();
+        }
+
+        <span class="s0">public void </span>draw(Canvas canvas, <span class="s0">float </span>cx, <span class="s0">float </span>cy) {
+            cicleRect.set(cx - size / <span class="s2">2f</span>, cy - size / <span class="s2">2f</span>, cx + size / <span class="s2">2f</span>, cy + size / <span class="s2">2f</span>);
+            canvas.drawArc(
+                    cicleRect,
+                    radOffset,
+                    drawingCircleLenght = currentCircleLength,
+                    <span class="s0">false</span>,
+                    progressPaint);
+            updateAnimation();
+        }
+
+        <span class="s0">public boolean </span>isCircle() {
+            <span class="s0">return </span>Math.abs(drawingCircleLenght) &gt;= <span class="s2">360</span>;
+        }
+
+        <span class="s0">private int </span>dp(<span class="s0">float </span>px) {
+            <span class="s0">return </span>(<span class="s0">int</span>) (getContext().getResources().getDisplayMetrics().density * px);
+        }
+    }
+}
+
+
+
+</pre>
+</body>
+</html>
