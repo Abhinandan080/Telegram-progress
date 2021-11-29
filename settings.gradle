@@ -1,0 +1,2 @@
+include ':app'
+rootProject.name = "Telegram Sketchub 3 progressbar by Abhinandan"
